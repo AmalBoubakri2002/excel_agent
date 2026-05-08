@@ -1,0 +1,20 @@
+# Environnement virtuel
+.venv/
+
+# Fichiers Python compilés
+__pycache__/
+*.pyc
+*.pyo
+
+# Variables d'environnement
+.env
+
+# Données sensibles
+data/
+
+# IDE
+.vscode/
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
