@@ -1,6 +1,6 @@
 def build_interpreter_prompt(
     question: str,
-    excel_structure_summary: str  
+    excel_structure_summary: str
 ) -> str:
     """
     Construit le prompt pour l'Agent 2 – Interpréteur.
@@ -11,6 +11,7 @@ def build_interpreter_prompt(
     - Éviter les hallucinations (colonnes inventées)
     - Forcer un raisonnement étape par étape
     """
+
     return f"""Tu es un expert en analyse de données. Tu reçois une question
 d'un utilisateur et la structure d'un fichier Excel.
 Ton rôle est d'identifier précisément quelles feuilles et colonnes
@@ -39,9 +40,12 @@ RÔLES POSSIBLES POUR LES COLONNES :
 
 RÈGLES IMPORTANTES :
 1. N'utilise QUE les colonnes listées dans la structure ci-dessus
-2. Si la question est ambiguë, mets needs_clarification à true
-3. Le champ confidence doit refléter ta certitude (0.0 à 1.0)
-4. interpreted_question doit reformuler clairement l'intention
+2. Choisis la feuille qui contient les données demandées :
+   si la question parle d'incidents → utilise la feuille 'Incidents'
+   si la question parle de mesures/capteurs → utilise 'Mesures'
+3. Si la question est ambiguë, mets needs_clarification à true
+4. Le champ confidence doit refléter ta certitude (0.0 à 1.0)
+5. interpreted_question doit reformuler clairement l'intention
 
 Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ou après,
 sans balises markdown, sans explication. Exactement ce format :
@@ -77,27 +81,44 @@ def build_structure_summary(structure) -> str:
     On ne passe PAS l'objet Pydantic brut au LLM — on construit
     un résumé textuel compact et clair pour économiser les tokens.
     """
+
     lines = []
+
     lines.append(f"Fichier : {structure.file_name}")
-    lines.append(f"Feuilles pertinentes : {len(structure.relevant_sheets)}\n")
+    lines.append(
+        f"Feuilles pertinentes : "
+        f"{len(structure.relevant_sheets)}\n"
+    )
 
     for sheet in structure.relevant_sheets:
-        lines.append(f"FEUILLE : '{sheet.name}' ({sheet.n_rows} lignes)")
 
-        useful_cols = [c for c in sheet.columns if not c.should_ignore]
+        lines.append(
+            f"FEUILLE : '{sheet.name}' "
+            f"({sheet.n_rows} lignes)"
+        )
+
+        useful_cols = [
+            c for c in sheet.columns
+            if not c.should_ignore
+        ]
+
         for col in useful_cols:
+
             stats_str = ""
+
             if col.mean is not None:
                 stats_str = (
                     f" | moy={col.mean}, "
                     f"min={col.min_val}, "
                     f"max={col.max_val}"
                 )
+
             lines.append(
                 f"  - {col.name} "
                 f"[{col.column_type.value}]"
                 f"{stats_str}"
             )
+
         lines.append("")
 
     return "\n".join(lines)
