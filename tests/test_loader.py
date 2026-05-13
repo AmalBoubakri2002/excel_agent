@@ -127,21 +127,35 @@ def test_clean_supprime_lignes_vides():
 
 # ── Tests _resolve_sheet ─────────────────────────────────────
 
+# APRÈS
 def test_resolve_sheet_plus_frequente():
+    cols = [
+        ColumnInfo(name="Temp", column_type=ColumnType.NUMERIC,
+                   index=0, null_ratio=0.0, unique_count=5),
+    ]
+    sheet_mesures   = SheetInfo(name="Mesures",   n_rows=200, n_cols=3,
+                                columns=cols, is_relevant=True)
+    sheet_incidents = SheetInfo(name="Incidents", n_rows=50,  n_cols=2,
+                                columns=cols, is_relevant=True)
+    structure = ExcelStructure(
+        file_path="data/samples/mesures_centrale.xlsx",
+        file_name="mesures_centrale.xlsx",
+        sheets=[sheet_mesures, sheet_incidents]
+    )
     mapping = MappingResult(
         interpreted_question="test",
         analysis_type=AnalysisType.STATISTICAL,
         selected_columns=[
-            ColumnSelection(sheet_name="Mesures", column_name="Temp",
-                            role="target", reason=""),
-            ColumnSelection(sheet_name="Mesures", column_name="Pression",
+            ColumnSelection(sheet_name="Mesures",   column_name="Temp",
+                            role="target",  reason=""),
+            ColumnSelection(sheet_name="Mesures",   column_name="Pression",
                             role="feature", reason=""),
             ColumnSelection(sheet_name="Incidents", column_name="Zone",
-                            role="filter", reason=""),
+                            role="filter",  reason=""),
         ],
         confidence=0.9,
     )
-    sheet = _resolve_sheet_for_mapping(mapping)
+    sheet = _resolve_sheet_for_mapping(mapping, structure)
     assert sheet == "Mesures"
 
 
