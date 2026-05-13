@@ -122,3 +122,48 @@ def build_structure_summary(structure) -> str:
         lines.append("")
 
     return "\n".join(lines)
+def build_synthesizer_prompt(
+    question: str,
+    analysis_type: str,
+    metrics_summary: str,
+    data_summary: str,
+) -> str:
+    """
+    Construit le prompt pour l'Agent 6 – Synthétiseur.
+    Le LLM reçoit les chiffres bruts et doit produire
+    une réponse claire en français pour l'utilisateur.
+    """
+    return f"""Tu es un expert en analyse de données qui explique
+des résultats statistiques à un utilisateur non-technicien.
+
+QUESTION ORIGINALE DE L'UTILISATEUR :
+{question}
+
+TYPE D'ANALYSE EFFECTUÉE : {analysis_type}
+
+RÉSUMÉ DES DONNÉES ANALYSÉES :
+{data_summary}
+
+RÉSULTATS BRUTS DE L'ANALYSE :
+{metrics_summary}
+
+Ta tâche :
+1. Réponds directement à la question en langage naturel clair
+2. Cite les chiffres clés de manière compréhensible
+3. Donne une interprétation concrète (que signifie ce résultat ?)
+4. Propose 1-2 suggestions d'analyses complémentaires pertinentes
+
+Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ou après :
+
+{{
+  "answer": "réponse claire et directe à la question en français",
+  "key_metrics": {{
+    "métrique 1": "valeur lisible",
+    "métrique 2": "valeur lisible"
+  }},
+  "interpretation": "ce que ça signifie concrètement",
+  "suggestions": [
+    "suggestion d'analyse complémentaire 1",
+    "suggestion d'analyse complémentaire 2"
+  ]
+}}"""
