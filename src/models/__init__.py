@@ -4,6 +4,7 @@ from .mapping         import MappingResult, ColumnSelection, FilterCondition
 from .analysis        import AnalysisResult, FinalResponse, AnalysisStatus
 from .loaded_data     import LoadedData
 from .transform_plan  import TransformPlan, ColumnTransform, TransformType
+from .pipeline_state  import PipelineState
 
 __all__ = [
     "UserQuery", "AnalysisType",
@@ -12,4 +13,5 @@ __all__ = [
     "AnalysisResult", "FinalResponse", "AnalysisStatus",
     "LoadedData",
     "TransformPlan", "ColumnTransform", "TransformType",
+    "PipelineState",
 ]

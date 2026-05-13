@@ -1,59 +1,128 @@
 import pandas as pd
-from pydantic import BaseModel, Field
+
+from pydantic import (
+    BaseModel,
+    Field,
+    ConfigDict,
+)
+
 from enum import Enum
 from typing import Any
 
 
 class TransformType(str, Enum):
-    NONE           = "none"            # pas de transformation
-    NORMALIZE      = "normalize"       # normalisation min-max ou zscore
-    ENCODE_LABEL   = "encode_label"    # encodage ordinal (ex: Nominal=0, Alerte=1)
-    ENCODE_ONEHOT  = "encode_onehot"   # encodage one-hot
-    FILL_MEDIAN    = "fill_median"     # remplir nulls par la médiane
-    FILL_MODE      = "fill_mode"       # remplir nulls par le mode
-    DROP_NULLS     = "drop_nulls"      # supprimer lignes avec nulls
+    NONE           = "none"
+    NORMALIZE      = "normalize"
+    ENCODE_LABEL   = "encode_label"
+    ENCODE_ONEHOT  = "encode_onehot"
+    FILL_MEDIAN    = "fill_median"
+    FILL_MODE      = "fill_mode"
+    DROP_NULLS     = "drop_nulls"
 
 
 class ColumnTransform(BaseModel):
     """Transformation appliquée à une colonne."""
-    column_name    : str           = Field(..., description="Colonne transformée")
-    transform_type : TransformType = Field(..., description="Type de transformation")
-    params         : dict[str, Any] = Field(
-        default_factory=dict,
-        description="Paramètres de la transformation (ex: mean, std pour zscore)"
+
+    column_name: str = Field(
+        ...,
+        description="Colonne transformée"
     )
+
+    transform_type: TransformType = Field(
+        ...,
+        description="Type de transformation"
+    )
+
+    params: dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Paramètres de la transformation"
+        )
+    )
+
     new_column_name: str = Field(
         default="",
-        description="Nom de la colonne résultante (vide = même nom)"
+        description=(
+            "Nom de la colonne résultante"
+        )
     )
 
 
 class TransformPlan(BaseModel):
     """
     Résultat de l'Agent 4 – Transformateur.
-    Décrit toutes les transformations appliquées + le DataFrame final.
+
+    Décrit toutes les transformations
+    appliquées + le DataFrame final.
     """
-    model_config = {"arbitrary_types_allowed": True}
 
-    # DataFrame transformé, prêt pour l'analyse
-    dataframe      : pd.DataFrame = Field(..., description="Données transformées")
+    # Autoriser les DataFrame pandas
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True
+    )
 
-    # Liste des transformations effectuées
-    transformations: list[ColumnTransform] = Field(default_factory=list)
+    # ─────────────────────────────────────────────
+    # DataFrame transformé
+    # ─────────────────────────────────────────────
+    dataframe: pd.DataFrame = Field(
+        ...,
+        description="Données transformées"
+    )
 
-    # Colonnes finales et leurs rôles
+    # ─────────────────────────────────────────────
+    # Transformations effectuées
+    # ─────────────────────────────────────────────
+    transformations: list[ColumnTransform] = Field(
+        default_factory=list
+    )
+
+    # ─────────────────────────────────────────────
+    # Colonnes utilisées
+    # ─────────────────────────────────────────────
     feature_columns: list[str] = Field(
         default_factory=list,
         description="Colonnes features (X)"
     )
-    target_column  : str = Field(
+
+    target_column: str = Field(
         default="",
-        description="Colonne cible (y) si applicable"
+        description="Colonne cible (y)"
     )
 
-    # Résumé lisible des opérations
-    summary        : list[str] = Field(
+    # ─────────────────────────────────────────────
+    # Résumé humain
+    # ─────────────────────────────────────────────
+    summary: list[str] = Field(
         default_factory=list,
-        description="Description humaine des transformations"
+        description=(
+            "Description humaine "
+            "des transformations"
+        )
     )
-    warnings       : list[str] = Field(default_factory=list)
+
+    warnings: list[str] = Field(
+        default_factory=list
+    )
+
+    # ─────────────────────────────────────────────
+    # Correction LangGraph/msgpack
+    # ─────────────────────────────────────────────
+    def model_dump(self, *args, **kwargs):
+        """
+        Empêche msgpack de sérialiser
+        directement le DataFrame.
+        """
+
+        data = super().model_dump(
+            *args,
+            **kwargs
+        )
+
+        # Remplacer le DataFrame
+        # par un résumé léger
+        data["dataframe"] = {
+            "shape": list(self.dataframe.shape),
+            "columns": self.dataframe.columns.tolist(),
+        }
+
+        return data

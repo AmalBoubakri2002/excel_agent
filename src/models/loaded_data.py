@@ -1,51 +1,114 @@
 import pandas as pd
-from pydantic import BaseModel, Field
-from typing import Any
+
+from pydantic import (
+    BaseModel,
+    Field,
+    ConfigDict,
+)
 
 
 class LoadedData(BaseModel):
     """
     Résultat de l'Agent 3 – Chargeur.
-    Contient le DataFrame prêt pour l'analyse + toutes les métadonnées.
 
-    On ne stocke PAS le DataFrame dans Pydantic directement
-    (Pydantic ne sait pas valider un DataFrame).
-    On utilise model_config pour autoriser les types arbitraires.
+    Contient le DataFrame prêt pour l'analyse
+    + toutes les métadonnées.
     """
-    model_config = {"arbitrary_types_allowed": True}
 
-    # Le DataFrame principal chargé et nettoyé
+    # Autoriser les types arbitraires (DataFrame)
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True
+    )
+
+    # ─────────────────────────────────────────────
+    # DataFrame principal
+    # ─────────────────────────────────────────────
     dataframe: pd.DataFrame = Field(
         ...,
-        description="Données chargées et filtrées, prêtes pour l'analyse"
+        description=(
+            "Données chargées et filtrées, "
+            "prêtes pour l'analyse"
+        )
     )
 
-    # Métadonnées sur ce qui a été chargé
-    sheet_name: str  = Field(..., description="Feuille source")
-    n_rows: int      = Field(..., description="Nombre de lignes chargées")
-    n_cols: int      = Field(..., description="Nombre de colonnes chargées")
+    # ─────────────────────────────────────────────
+    # Métadonnées
+    # ─────────────────────────────────────────────
+    sheet_name: str = Field(
+        ...,
+        description="Feuille source"
+    )
 
-    # Colonnes disponibles avec leurs rôles
-    # Ex: {"Temperature": "target", "Pression": "feature"}
+    n_rows: int = Field(
+        ...,
+        description="Nombre de lignes chargées"
+    )
+
+    n_cols: int = Field(
+        ...,
+        description="Nombre de colonnes chargées"
+    )
+
+    # ─────────────────────────────────────────────
+    # Rôles des colonnes
+    # ─────────────────────────────────────────────
     column_roles: dict[str, str] = Field(
         default_factory=dict,
-        description="Rôle de chaque colonne dans l'analyse"
+        description=(
+            "Rôle de chaque colonne "
+            "dans l'analyse"
+        )
     )
 
-    # Filtres qui ont été appliqués
+    # ─────────────────────────────────────────────
+    # Filtres appliqués
+    # ─────────────────────────────────────────────
     applied_filters: list[str] = Field(
         default_factory=list,
-        description="Description des filtres appliqués"
+        description=(
+            "Description des filtres appliqués"
+        )
     )
 
-    # Avertissements sur la qualité des données
+    # ─────────────────────────────────────────────
+    # Warnings
+    # ─────────────────────────────────────────────
     warnings: list[str] = Field(
         default_factory=list,
-        description="Problèmes détectés lors du chargement"
+        description=(
+            "Problèmes détectés "
+            "lors du chargement"
+        )
     )
 
-    # Statistiques post-chargement
+    # ─────────────────────────────────────────────
+    # Valeurs nulles
+    # ─────────────────────────────────────────────
     null_counts: dict[str, int] = Field(
         default_factory=dict,
-        description="Nombre de valeurs nulles par colonne"
+        description=(
+            "Nombre de valeurs nulles "
+            "par colonne"
+        )
     )
+
+    # ─────────────────────────────────────────────
+    #  LangGraph/msgpack
+    # ─────────────────────────────────────────────
+    def model_dump(self, *args, **kwargs):
+        """
+        Empêche la sérialisation directe
+        du DataFrame par msgpack.
+        """
+
+        data = super().model_dump(
+            *args,
+            **kwargs
+        )
+
+        data["dataframe"] = {
+            "shape": list(self.dataframe.shape),
+            "columns": self.dataframe.columns.tolist(),
+        }
+
+        return data
